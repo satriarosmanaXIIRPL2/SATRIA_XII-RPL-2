@@ -1,10 +1,55 @@
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Aplikasi {
+    private static final String NAMA_FILE = "kontak.csv";
+    private static ArrayList<Kontak> daftarKontak = new ArrayList<>(); // Pindahkan deklarasi di sini
+
+    private static void simpanKontakKeFile() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(NAMA_FILE, true))) {
+            for (Kontak kontak : daftarKontak) {
+                if (!kontakAdaDiFile(kontak)) {
+                    writer.write(kontak.getNama() + "," + kontak.getNomorTelepon() + "," + kontak.getEmail());
+                    writer.newLine();
+                }
+            }
+            System.out.println("Kontak baru berhasil disimpan ke dalam file.");
+        } catch (IOException e) {
+            System.err.println("Terjadi kesalahan saat menyimpan kontak ke dalam file.");
+        }
+    }
+
+    private static boolean kontakAdaDiFile(Kontak kontak) {
+        File file = new File(NAMA_FILE);
+        if (file.exists()) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(NAMA_FILE))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String[] parts = line.split(",");
+                    if (parts.length == 3) {
+                        String nama = parts[0];
+                        String nomorTelepon = parts[1];
+                        String email = parts[2];
+                        if (nama.equalsIgnoreCase(kontak.getNama()) &&
+                            nomorTelepon.equals(kontak.getNomorTelepon()) &&
+                            email.equals(kontak.getEmail())) {
+                            return true; // Kontak sudah ada di file
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                System.err.println("Terjadi kesalahan saat membaca kontak dari file.");
+            }
+        }
+        return false; // Kontak tidak ada di file
+    }
+
     public static void main(String[] args) {
+        // Membaca data dari file jika file sudah ada
+        bacaKontakDariFile();
+
         Scanner scanner = new Scanner(System.in);
-        ArrayList<Kontak> daftarKontak = new ArrayList<>();
 
         int pilihan;
         do {
@@ -27,8 +72,12 @@ public class Aplikasi {
                     System.out.print("Masukkan Email: ");
                     String email = scanner.nextLine();
                     Kontak kontakBaru = new Kontak(nama, nomorTelepon, email);
-                    daftarKontak.add(kontakBaru);
-                    System.out.println("Kontak berhasil ditambahkan!");
+                    if (!kontakAdaDiDaftar(kontakBaru)) {
+                        daftarKontak.add(kontakBaru);
+                        System.out.println("====== Kontak baru berhasil ditambahkan! =====");
+                    } else {
+                        System.out.println("Kontak sudah ada dalam daftar.");
+                    }
                     break;
                 case 2:
                     System.out.print("Masukkan Nama Kontak yang akan dihapus: ");
@@ -36,7 +85,7 @@ public class Aplikasi {
                     for (Kontak kontak : daftarKontak) {
                         if (kontak.getNama().equalsIgnoreCase(namaHapus)) {
                             daftarKontak.remove(kontak);
-                            System.out.println("Kontak berhasil dihapus!");
+                            System.out.println("===== Kontak berhasil dihapus! =====");
                             break;
                         }
                     }
@@ -48,13 +97,16 @@ public class Aplikasi {
                     System.out.println("Kontak berhasil dihapus!");
                     break;
                 case 4:
+                    System.out.println("==============");
                     System.out.println("Daftar Kontak:");
+                    System.out.println("==============");
                     for (Kontak kontak : daftarKontak) {
                         System.out.println(kontak);
-                        System.out.println("-----------");
+                        System.out.println("===========");
                     }
                     break;
                 case 5:
+                    simpanKontakKeFile(); // Menyimpan kontak baru ke dalam file sebelum keluar
                     System.out.println("Terima kasih!");
                     break;
                 default:
@@ -64,6 +116,39 @@ public class Aplikasi {
 
         scanner.close();
     }
+
+    // Fungsi untuk membaca kontak dari file jika file sudah ada
+    private static void bacaKontakDariFile() {
+        File file = new File(NAMA_FILE);
+        if (file.exists()) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(NAMA_FILE))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String[] parts = line.split(",");
+                    if (parts.length == 3) {
+                        String nama = parts[0];
+                        String nomorTelepon = parts[1];
+                        String email = parts[2];
+                        Kontak kontak = new Kontak(nama, nomorTelepon, email);
+                        daftarKontak.add(kontak);
+                    }
+                }
+            } catch (IOException e) {
+                System.err.println("Terjadi kesalahan saat membaca kontak dari file.");
+            }
+        }
+    }
+
+    private static boolean kontakAdaDiDaftar(Kontak kontak) {
+        for (Kontak k : daftarKontak) {
+            if (k.getNama().equalsIgnoreCase(kontak.getNama()) &&
+                k.getNomorTelepon().equals(kontak.getNomorTelepon()) &&
+                k.getEmail().equals(kontak.getEmail())) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
 class Kontak {
@@ -71,14 +156,12 @@ class Kontak {
     private String nomorTelepon;
     private String email;
 
-    // Konstruktor
     public Kontak(String nama, String nomorTelepon, String email) {
         this.nama = nama;
         this.nomorTelepon = nomorTelepon;
         this.email = email;
     }
 
-    // Getter dan setter untuk atribut-atribut
     public String getNama() {
         return nama;
     }
